@@ -51,7 +51,7 @@ export function ExportMenu({ deal }: { deal: Deal; analysis: Analysis }) {
   return (
     <div className="switcher" ref={ref}>
       <button className="btn btn-brass" onClick={() => setOpen((o) => !o)} disabled={busy}>
-        <Icon name="download" /> {busy ? "Erzeuge…" : "Export"}
+        <Icon name="download" /> <span className="lbl">{busy ? "Erzeuge…" : "Export"}</span>
       </button>
       {open && (
         <div className="switcher-menu right">

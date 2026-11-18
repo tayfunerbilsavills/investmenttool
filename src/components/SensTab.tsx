@@ -4,7 +4,9 @@ import type { Deal } from "@/lib/model/types";
 import type { Analysis } from "@/lib/model/calc";
 import { DRIVERS, OUTPUTS, axis, breakEven, defaultScenarios, driver, evalWith, grid, output, tornado, type Scenario } from "@/lib/model/sensitivity";
 import { fmtBy, type FmtKind } from "@/lib/format";
-import { Card, Field, Num, Select, Icon } from "./ui";
+import { Card, Field, Num, Select, Icon, Segmented } from "./ui";
+import { useMobile } from "@/lib/useMobile";
+import { useEffect } from "react";
 
 const fmt = (k: string, v: number) => fmtBy(k as FmtKind, v);
 const driverOpts = DRIVERS.map((d) => ({ value: d.key, label: d.label }));
@@ -20,6 +22,10 @@ export function SensTab({ deal: liveDeal, a }: { deal: Deal; a: Analysis }) {
   const [yKey, setY] = useState("exitFaktor");
   const [oKey, setO] = useState("irr");
   const [steps, setSteps] = useState(3);
+  const mobile = useMobile();
+  useEffect(() => {
+    if (mobile) setSteps(2);
+  }, [mobile]);
   const [xStep, setXStep] = useState<number | null>(null);
   const [yStep, setYStep] = useState<number | null>(null);
   const [target, setTarget] = useState<number | null>(null);
@@ -236,6 +242,7 @@ function BreakEvenCard({ deal }: { deal: Deal }) {
 }
 
 function ScenarioCard({ deal }: { deal: Deal }) {
+  const mobile = useMobile();
   const [scen, setScen] = useState<Scenario[]>(() => defaultScenarios(deal));
   const used = [...new Set(scen.flatMap((s) => s.changes.map((c) => c.key)))];
   const [addKey, setAddKey] = useState(DRIVERS.find((d) => !used.includes(d.key))?.key ?? "kaufpreis");
@@ -274,6 +281,9 @@ function ScenarioCard({ deal }: { deal: Deal }) {
         </>
       }
     >
+      {mobile ? (
+        <ScenarioMobile deal={deal} scen={scen} setScen={setScen} used={used} addKey={addKey} setAddKey={setAddKey} results={results} kpis={kpis} valueOf={valueOf} setVal={setVal} />
+      ) : (
       <div className="table-wrap">
         <table className="tbl scen">
           <thead>
@@ -341,7 +351,106 @@ function ScenarioCard({ deal }: { deal: Deal }) {
           </tfoot>
         </table>
       </div>
+      )}
       <p className="muted small">Leere Felder übernehmen den Basiswert. Δ%-Annahmen sind Abweichungen (z. B. −10 % Marktmiete).</p>
     </Card>
   );
+}
+
+function ScenarioMobile({
+  deal,
+  scen,
+  setScen,
+  used,
+  addKey,
+  setAddKey,
+  results,
+  kpis,
+  valueOf,
+  setVal,
+}: {
+  deal: Deal;
+  scen: Scenario[];
+  setScen: React.Dispatch<React.SetStateAction<Scenario[]>>;
+  used: string[];
+  addKey: string;
+  setAddKey: (k: string) => void;
+  results: Analysis[];
+  kpis: [string, (x: Analysis) => number, string][];
+  valueOf: (s: Scenario, k: string) => number | null;
+  setVal: (si: number, k: string, v: number | null) => void;
+}) {
+  const [sel, setSel] = useState(0);
+  const i = Math.min(sel, scen.length - 1);
+  const s = scen[i];
+  return (
+    <div className="scen-m">
+      <Segmented value={String(i)} onChange={(v) => setSel(parseInt(v, 10))} options={scen.map((x, k) => ({ value: String(k), label: x.name }))} />
+      <div className="scen-m-head">
+        <input className="txt" value={s.name} onChange={(e) => setScen((l) => l.map((x, k) => (k === i ? { ...x, name: e.target.value } : x)))} />
+        {scen.length > 1 && (
+          <button className="icon-btn" onClick={() => (setScen((l) => l.filter((_, k) => k !== i)), setSel(0))} aria-label="Szenario entfernen">
+            <Icon name="trash" size={15} />
+          </button>
+        )}
+      </div>
+      <div className="mgrid">
+        {used.map((k) => {
+          const dr = driver(k);
+          const rel = k === "marktmiete" || k === "leerstandMonate" || k === "umbau";
+          return (
+            <label key={k} className="field">
+              <span className="field-label">
+                {dr.label} <em className="muted">({rel ? "±0 %" : fmt(dr.fmt, dr.get(deal))})</em>
+              </span>
+              <Num value={valueOf(s, k)} kind={numKind(dr.fmt)} nullable placeholder="Basis" onChange={(v) => setVal(i, k, v)} />
+            </label>
+          );
+        })}
+      </div>
+      <div className="scen-m-add">
+        <Select value={addKey} options={driverOpts.filter((o) => !used.includes(o.value))} onChange={setAddKey} />
+        <button
+          className="btn btn-small"
+          onClick={() => {
+            const dr = driver(addKey);
+            setScen((l) => l.map((x, k) => (k === i && !x.changes.some((c) => c.key === addKey) ? { ...x, changes: [...x.changes, { key: addKey, value: dr.get(deal) }] } : x)));
+          }}
+        >
+          <Icon name="plus" size={14} /> Annahme
+        </button>
+      </div>
+      <table className="tbl scen-res">
+        <thead>
+          <tr>
+            <th />
+            {scen.map((x, k) => (
+              <th key={x.id} className={`r ${k === i ? "cur" : ""}`}>
+                {x.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {kpis.map(([label, fn, f]) => (
+            <tr key={label}>
+              <td>{label}</td>
+              {results.map((r, k) => {
+                const v = fn(r);
+                return (
+                  <td key={k} className={`r tnum ${k === i ? "cur" : ""}`}>
+                    {Number.isFinite(v) ? (f === "eur" ? fmtMioShort(v) : fmt(f, v)) : "n/a"}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function fmtMioShort(v: number) {
+  return `${(v / 1e6).toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} Mio.`;
 }

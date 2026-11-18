@@ -1,9 +1,10 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDeals } from "@/lib/store";
 import { analyze, checks } from "@/lib/model/calc";
 import { emptyDeal, sampleDeal } from "@/lib/model/defaults";
 import { Icon } from "@/components/ui";
+import { fmtMio, fmtX, fmtPct, fmtNum } from "@/lib/format";
 import { KpiBar } from "@/components/KpiBar";
 import { ObjektTab } from "@/components/ObjektTab";
 import { MieterTab } from "@/components/MieterTab";
@@ -31,6 +32,15 @@ export default function Page() {
   const { deal, update, ready } = store;
   const [tab, setTab] = useState<TabId>("pricing");
   const [importOpen, setImportOpen] = useState(false);
+  const headRef = useRef<HTMLElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const el = headRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setScrolled(!e.isIntersecting), { threshold: 0, rootMargin: "-40px 0px 0px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [ready]);
   const analysis = useMemo(() => (deal ? analyze(deal) : null), [deal]);
   const warn = useMemo(() => (deal ? checks(deal, analysis?.s) : []), [deal, analysis]);
 
@@ -44,7 +54,7 @@ export default function Page() {
   const idx = TABS.findIndex((t) => t.id === tab);
   return (
     <div className="app">
-      <header className="masthead">
+      <header className="masthead" ref={headRef}>
         <div className="masthead-inner">
           <div className="brand">
             <span className="brand-mark">S</span>
@@ -56,7 +66,7 @@ export default function Page() {
           <DealSwitcher store={store} onNew={() => store.add(emptyDeal())} onSample={() => store.add(sampleDeal())} />
           <div className="masthead-actions">
             <button className="btn btn-glass" onClick={() => setImportOpen(true)}>
-              <Icon name="upload" /> Import
+              <Icon name="upload" /> <span className="lbl">Import</span>
             </button>
             <ExportMenu deal={deal} analysis={analysis} />
           </div>
@@ -69,11 +79,33 @@ export default function Page() {
         <KpiBar a={analysis} deal={deal} />
       </header>
 
+      <div className={`mini-kpi ${scrolled ? "show" : ""}`} aria-hidden>
+        <span>
+          <em>KP</em>
+          {fmtMio(analysis.p.kaufpreis)}
+        </span>
+        <span>
+          <em>Faktor</em>
+          {fmtX(analysis.p.faktorIst)}
+        </span>
+        <span>
+          <em>IRR</em>
+          {fmtPct(analysis.cf.irr)}
+        </span>
+        <span>
+          <em>WALT</em>
+          {fmtNum(analysis.s.walt, 1)}
+        </span>
+      </div>
+
       <nav className="glassnav" aria-label="Bereiche">
         <div className="glassnav-track" style={{ ["--i" as string]: idx, ["--n" as string]: TABS.length }}>
           <span className="glassnav-spot" aria-hidden />
           {TABS.map((t) => (
-            <button key={t.id} className={t.id === tab ? "on" : ""} onClick={() => setTab(t.id)}>
+            <button key={t.id} className={t.id === tab ? "on" : ""} onClick={() => {
+                setTab(t.id);
+                if (window.matchMedia("(max-width: 760px)").matches) window.scrollTo({ top: 0, behavior: "smooth" });
+              }}>
               <Icon name={t.icon} size={17} />
               <span>{t.label}</span>
               {t.id === "objekt" && warn.some((w) => w.level === "error") && <i className="dot" />}

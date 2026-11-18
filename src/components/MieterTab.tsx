@@ -5,6 +5,8 @@ import { type Analysis, type Check, istMieteQm, marktmieteQm, restlaufzeit, isM2
 import { NUTZUNGEN, NUTZUNG_DEFAULTS, emptyUnit } from "@/lib/model/defaults";
 import { fmtEur, fmtNum, fmtPct, fmtYrs, fmtM2 } from "@/lib/format";
 import { Card, DateIn, Icon, Num, Select, Stat, Text, Badge } from "./ui";
+import { useMobile } from "@/lib/useMobile";
+import { UnitCards, NutzungCards } from "./MobileCards";
 
 type Upd = (fn: (d: Deal) => void) => void;
 
@@ -20,6 +22,7 @@ export function MieterTab({ deal, a, update, warn, onImport }: { deal: Deal; a: 
   const warnBy = new Map<string, string[]>();
   for (const w of warn) if (w.unitId) warnBy.set(w.unitId, [...(warnBy.get(w.unitId) ?? []), w.text]);
   const s = a.s;
+  const mobile = useMobile();
 
   return (
     <div className="stack">
@@ -47,6 +50,9 @@ export function MieterTab({ deal, a, update, warn, onImport }: { deal: Deal; a: 
           </>
         }
       >
+        {mobile ? (
+          <UnitCards deal={deal} units={units} nutzOptions={nutzOptions} update={update} setU={setU} warnBy={warnBy} />
+        ) : (
         <div className="table-wrap">
           <table className="tbl rentroll">
             <thead>
@@ -158,6 +164,7 @@ export function MieterTab({ deal, a, update, warn, onImport }: { deal: Deal; a: 
             </tfoot>
           </table>
         </div>
+        )}
         <p className="muted small">
           Restlaufzeit = (Mietende − Stichtag) / 365,25 Tage. Unbefristete Verträge zählen mit {fmtNum(deal.dcf.unbefristetJahre, 1)} Jahren (Einstellung unter Cashflow). Leere Einheiten gehen nicht in den WALT ein.
         </p>
@@ -240,6 +247,9 @@ export function MieterTab({ deal, a, update, warn, onImport }: { deal: Deal; a: 
       </div>
 
       <Card title="Annahmen je Nutzungsart" kicker="Marktmiete, Ausbau, Leerstand, Anschlussvermietung">
+        {mobile ? (
+          <NutzungCards deal={deal} nutzungen={s.byNutzung.map((n) => n.nutzung)} update={update} />
+        ) : (
         <div className="table-wrap">
           <table className="tbl assumptions">
             <thead>
@@ -299,6 +309,7 @@ export function MieterTab({ deal, a, update, warn, onImport }: { deal: Deal; a: 
             </tbody>
           </table>
         </div>
+        )}
         <p className="muted small">
           Heute leere Flächen werden nach der Leerstandsdauer zur Marktmiete vermietet; Ausbau fällt beim Kauf an. Bei Vertragsende wird mit der Verlängerungsquote gewichtet: Leerstand, Mietfreiheit, Ausbau und Makler fallen nur zum Anteil (1 − Quote) an, die
           Anschlussmiete ist die dann gültige Marktmiete.
