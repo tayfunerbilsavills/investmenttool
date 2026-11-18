@@ -57,7 +57,7 @@ function setupSheet(ws: WS, title: string, subtitle: string, widths: number[]) {
   ws.mergeCells(1, 1, 1, Math.max(4, widths.length));
   const t = ws.getCell(1, 1);
   t.value = title.toUpperCase();
-  t.font = { name: "Georgia", size: 15, bold: false, color: { argb: C.plaster } };
+  t.font = { name: "Arial", size: 15, bold: false, color: { argb: C.plaster } };
   t.alignment = { vertical: "middle", indent: 1 };
   ws.getRow(1).height = 30;
   for (let c = 1; c <= Math.max(4, widths.length); c++) {
@@ -96,7 +96,7 @@ function header(ws: WS, row: number, labels: string[], startCol = 1) {
 function section(ws: WS, row: number, label: string, cols: number) {
   const c = ws.getCell(row, 1);
   c.value = label.toUpperCase();
-  c.font = { name: "Georgia", size: 10, color: { argb: C.walnut }, bold: true };
+  c.font = { name: "Arial", size: 10, color: { argb: C.walnut }, bold: true };
   for (let i = 1; i <= cols; i++) ws.getCell(row, i).border = { bottom: thin(C.brass) };
   ws.getRow(row).height = 22;
 }
@@ -850,7 +850,7 @@ export async function buildWorkbook(deal: Deal, opts: ExportOptions = {}): Promi
     c.border = { bottom: thin() };
   });
   wsU.getCell(kpiTop - 2, 4).value = "KENNZAHLEN";
-  wsU.getCell(kpiTop - 2, 4).font = { name: "Georgia", size: 10, color: { argb: C.walnut }, bold: true };
+  wsU.getCell(kpiTop - 2, 4).font = { name: "Arial", size: 10, color: { argb: C.walnut }, bold: true };
   r = kpiTop + kpi.length + 1;
   section(wsU, r++, "Inhalt", 5);
   const toc: [string, string][] = [
