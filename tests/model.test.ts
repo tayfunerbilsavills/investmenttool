@@ -193,3 +193,12 @@ test("BOV: gewichteter Wert und IRR beim Marktwert", async () => {
   d2.pricing.kaufpreis = b.wert;
   close(b.irrBeiWert, analyze(d2).cf.irr);
 });
+
+test("Ohne Kaufpreis keine Rendite und kein Potenzialfaktor", () => {
+  const d = sampleDeal();
+  d.pricing.kaufpreis = 0;
+  const a = analyze(d);
+  assert.ok(Number.isNaN(a.cf.irr));
+  assert.ok(Number.isNaN(a.cf.irrLevered));
+  assert.equal(a.p.faktorPotenzial, 0);
+});

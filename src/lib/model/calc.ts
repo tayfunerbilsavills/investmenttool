@@ -290,7 +290,7 @@ export function pricing(deal: Deal, s: RentRollSummary = summarize(deal)): Prici
   const q = nkQuote(deal);
   const noi = noiIst(deal, s);
   const faktorIst = s.istMieteJahr > 0 ? kp / s.istMieteJahr : 0;
-  const faktorPotenzial = s.potenzialJahr > 0 ? (kp + s.vk.summe) / s.potenzialJahr : 0;
+  const faktorPotenzial = kp > 0 && s.potenzialJahr > 0 ? (kp + s.vk.summe) / s.potenzialJahr : 0;
   return {
     kaufpreis: kp,
     nkQuote: q,
@@ -622,8 +622,9 @@ export function cashflow(deal: Deal, s: RentRollSummary = summarize(deal)): Cash
     rows,
     forwardMiete,
     t0: { kaufpreis: kp, nk: kp * q, ausbauLeer, capexSofort: deal.pricing.capexSofort, darlehen, gebuehren, cf: t0cf, cfLevered: t0lev, eigenkapital },
-    irr: irr(cfs),
-    irrLevered: fin.aktiv ? irr(cfsLev) : irr(cfs),
+    // ohne Kaufpreis gibt es keine sinnvolle Rendite
+    irr: kp > 0 ? irr(cfs) : NaN,
+    irrLevered: kp > 0 ? (fin.aktiv ? irr(cfsLev) : irr(cfs)) : NaN,
     npv,
     dcfWert: pv,
     kaufpreisMaxDcf,

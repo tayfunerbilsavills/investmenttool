@@ -131,3 +131,38 @@ test("Excel-Datei mit Deckblatt: Mieterliste im zweiten Reiter wird gefunden", a
   assert.equal(best.units.reduce((x, u) => x + (u.leer ? 0 : u.mieteMonat), 0), 70785);
   assert.equal(best.units[2].option, "2028-06-30");
 });
+
+test("ERP-Export (SAP/PM, 50+ Spalten): richtige Miet-, Mieter- und Leerstandsspalten", () => {
+  // Spaltenstruktur eines realen PM-Exports, Werte erfunden
+  const H = ["Buchungskreis", "Wirtschaftseinheit", "Ort WE", "Mieteinheit - Straße, Hausnummer", "ME-Nr.", "Mieteinheitsnummer PM", "Vertrags-Nr.", "Vertrags-Nr. (PM)", "ME-Nutzungsart", "ME-Bezeichnung", "Bezeichnung Nutzungsart", "Mietfläche / Anzahl", "Einheit", "Leerstand [Y/N]", "Firmenname", "Mietvertrags- bzw. Leerstandsbeginn", "Mietvertragsende bzw. Ende Leerstand", "Kündigung [Y/N]", "Kündigungsdatum", "Verlängerungsoption [Y/N]", "Art 1. Option", "1. Option Verlängerung in Monaten", "Beginndatum - Netto Kaltmiete", "Netto-Miete Soll (pro Monat)", "Netto NK/HK-VZ - Soll (monatlich)", "Umlagefähige Netto Verwaltungskosten Soll", "Ust-Netto-Miete in %", "Bruttomiete - Soll", "Indexvereinbarung Miete [Y/N]", "Index", "Weitergabe in Prozent (Umlagequote)", "Staffelmiete Y/N", "Netto Kaltmiete - Staffel 1", "1.Kaution-Soll"];
+  const row = (nr: string, pm: string, code: string, bez: string, art: string, fl: number, einh: string, leer: string, firma: string, ende: string, miete: number, nk: number, brutto: number, idx: string) =>
+    ["XX00", "XX001", "Berlin", "Musterstraße 1", nr, pm, "", "", code, bez, art, fl, einh, leer, firma, "2021-01-01", ende, "N", null, "J", "2", 60, "2026-01-01", miete, nk, 0, 19, brutto, idx, idx === "J" ? "VPI 2020" : "", idx === "J" ? 80 : 0, "N", 0, 30000];
+  const rows = [
+    H,
+    row("XX001.1000", "00010000", "2002", "Handel EG", "Einzelhandel", 500, "M2", "N", "Handelskette GmbH", "2030-12-31", 9000, 1500, 12500, "J"),
+    row("XX001.1001", "00020000", "2008", "Büro 1.OG", "Büro", 400, "M2", "N", "Beratung AG", "2028-06-30", 8000, 1200, 10900, "N"),
+    row("XX001.1002", "00020001", "2008", "Büro 2.OG", "Büro", 300, "M2", "J", "", "9999-12-31", 0, 0, 0, ""),
+    row("XX001.1003", "00040002", "2100", "Lager 2 UG", "Archiv/Lager/Keller Gewerbe", 25, "M2", "J", "", "9999-12-31", 0, 0, 0, ""),
+    row("XX001.1004", "00050000", "3000", "TG-Stellplätze", "Stellplatz Tiefgarage", 12, "ST", "N", "Handelskette GmbH", "2030-12-31", 1200, 0, 1428, "N"),
+  ];
+  const r = parseRentRoll(rows as never)!;
+  assert.equal(r.units.length, 5);
+  const [a, b, c, d, e] = r.units;
+  assert.equal(a.mieteMonat, 9000); // nicht 10000 aus "Mieteinheitsnummer PM", nicht Brutto
+  assert.equal(a.mieter, "Handelskette GmbH");
+  assert.equal(a.nutzung, "Einzelhandel");
+  assert.equal(a.geschoss, "EG");
+  assert.equal(a.mietende, "2030-12-31");
+  assert.match(a.notiz, /VPI 2020 \(80 % Weitergabe\)/);
+  assert.equal(b.mieteMonat, 8000);
+  assert.equal(b.geschoss, "1.OG");
+  assert.equal(c.leer, true);
+  assert.equal(c.mietende, "");
+  assert.equal(d.leer, true);
+  assert.equal(d.nutzung, "Lager/Logistik");
+  assert.equal(d.geschoss, "UG");
+  assert.equal(e.einheit, "stk");
+  assert.equal(e.flaeche, 12);
+  assert.equal(e.mieteMonat, 1200);
+  assert.deepEqual(r.warnings, []);
+});

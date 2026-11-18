@@ -81,6 +81,7 @@ function iso(y: number, m: number, d: number): string | null {
 export function normalizeNutzung(raw: string, fallback = "Büro"): string {
   const s = (raw || "").toLowerCase();
   if (!s.trim()) return fallback;
+  if (/^\s*sonstig/.test(s)) return "Sonstiges";
   if (/stellpl|tiefgarage|\btg\b|garage|parking|carport|pkw|außenstell|duplex/.test(s)) return "Stellplätze";
   if (/gastro|restaurant|caf[eé]|\bbar\b|imbiss|bistro|kantine|bäcker/.test(s)) return "Gastronomie";
   if (/wohn|whg|apartment|residential|\bwe\b|appartement/.test(s)) return "Wohnen";

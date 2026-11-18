@@ -162,7 +162,16 @@ export function buildProposal(files: Extracted[], ai: AiExtraction | null): Prop
   // Tabelle zuerst, wenn sie mindestens so viele Einheiten hat wie die KI (exakte Zahlen)
   unitOptions.sort((a, b) => (a.source === "Tabelle" && a.units.length >= (b.units.length || 0) * 0.8 ? -1 : 1));
 
-  const hinweise = [...(ai?.hinweise ?? [])];
+  const hinweise = [...(rr?.warnings ?? []).map((w) => `Tabelle: ${w}`), ...(ai?.hinweise ?? [])];
+  const tab = unitOptions.find((o) => o.source === "Tabelle");
+  const kiOpt = unitOptions.find((o) => o.source === "KI");
+  if (tab && kiOpt) {
+    const sumOf = (u: Unit[]) => u.filter((x) => !x.leer).reduce((a, x) => a + x.mieteMonat * 12, 0);
+    const a = sumOf(tab.units);
+    const b = sumOf(kiOpt.units);
+    if (a > 0 && b > 0 && Math.abs(a / b - 1) > 0.05)
+      hinweise.push(`Tabelle und KI weichen bei der Jahresmiete ab: ${Math.round(a).toLocaleString("de-DE")} € vs. ${Math.round(b).toLocaleString("de-DE")} € – bitte Quelle prüfen`);
+  }
   if (facts.faktor) hinweise.push(`Faktor lt. Unterlagen: ${facts.faktor.toLocaleString("de-DE")}`);
   if (facts.walt) hinweise.push(`WALT lt. Unterlagen: ${facts.walt.toLocaleString("de-DE")} Jahre (wird im Tool selbst berechnet)`);
   if (g?.walt_jahre && !facts.walt) hinweise.push(`WALT lt. Unterlagen: ${g.walt_jahre.toLocaleString("de-DE")} Jahre (wird im Tool selbst berechnet)`);

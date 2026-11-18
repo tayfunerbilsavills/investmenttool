@@ -2398,3 +2398,43 @@ input[type="range"]::-moz-range-thumb {
     display: none !important;
   }
 }
+.preview-m {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  max-height: 46vh;
+  overflow: auto;
+}
+.preview-m li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line-2);
+  font-size: 13px;
+}
+.preview-m li.is-leer {
+  border-left: 3px solid var(--neg);
+}
+.preview-m li > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.preview-m li > div.r {
+  align-items: flex-end;
+  text-align: right;
+  flex: none;
+}
+.preview-m strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.preview-m span {
+  font-size: 11.5px;
+  color: var(--muted);
+}

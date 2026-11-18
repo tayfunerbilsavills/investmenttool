@@ -6,6 +6,7 @@ import { applyProposal, buildProposal, type Proposal } from "@/lib/import/merge"
 import type { AiExtraction } from "@/app/api/extract/route";
 import { fmtEur, fmtNum, fmtDate, fmtM2 } from "@/lib/format";
 import { Badge, Icon, Segmented, Toggle } from "./ui";
+import { useMobile } from "@/lib/useMobile";
 
 type Stage = "input" | "busy" | "review";
 
@@ -181,6 +182,7 @@ function Review({
   onApply: () => void;
 }) {
   const opt = proposal.unitOptions[unitChoice];
+  const mobile = useMobile();
   const sumM2 = opt ? opt.units.filter((u) => u.einheit !== "stk").reduce((x, u) => x + u.flaeche, 0) : 0;
   const sumAll = opt ? opt.units.reduce((x, u) => x + u.flaeche, 0) : 0;
   const sumM = opt ? opt.units.filter((u) => !u.leer).reduce((x, u) => x + u.mieteMonat * 12, 0) : 0;
@@ -246,6 +248,28 @@ function Review({
                   </em>
                 </div>
               </div>
+              {mobile ? (
+                <ul className="preview-m">
+                  {opt.units.map((u) => (
+                    <li key={u.id} className={u.leer ? "is-leer" : ""}>
+                      <div>
+                        <strong>{u.leer ? "Leerstand" : u.mieter || "–"}</strong>
+                        <span>
+                          {u.nutzung}
+                          {u.geschoss ? ` · ${u.geschoss}` : ""}
+                          {u.mietende ? ` · bis ${fmtDate(u.mietende)}` : u.leer ? "" : " · unbefristet"}
+                        </span>
+                      </div>
+                      <div className="r">
+                        <strong className="tnum">
+                          {fmtNum(u.flaeche, u.flaeche % 1 ? 2 : 0)} {u.einheit === "stk" ? "Stk" : "m²"}
+                        </strong>
+                        <span className="tnum">{u.leer ? "leer" : `${fmtEur(u.mieteMonat, 2)} mtl. · ${u.flaeche ? fmtNum(u.mieteMonat / u.flaeche, 2) : "–"} €/m²`}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
               <div className="table-wrap preview">
                 <table className="tbl small">
                   <thead>
@@ -278,6 +302,7 @@ function Review({
                   </tbody>
                 </table>
               </div>
+              )}
               {hasExisting && (
                 <div className="basis-row">
                   <span className="muted small">Bestehende Mieterliste</span>
